@@ -191,29 +191,42 @@ st.markdown("---")
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-# حساب المواعيد: (Content Due = Current Unit End Date - 7 Days)
+# حساب المواعيد بناءً على منطق التزامن (Content N Due = End of Activity N-1 - 7 Days)
 if not active_unit_row.empty:
-    # موعد الاستحقاق هو تاريخ نهاية عمل المصممين في الوحدة النشطة مطروحاً منه 7 أيام
-    # هذا الموعد ينطبق على محتوى الوحدة الحالية والقادمة لضمان التجهيز المسبق
-    base_deadline_dt = active_end_date - pd.Timedelta(days=7)
-    content_deadline_str = base_deadline_dt.strftime('%d/%m/%Y')
+    active_idx = active_unit_row.index[0]
+    
+    # 1. موعد محتوى الوحدة الحالية (Current): يعتمد على نهاية الوحدة السابقة
+    if active_idx > 0:
+        prev_unit_end = df_dead.iloc[active_idx - 1]['End']
+        current_content_deadline_dt = prev_unit_end - pd.Timedelta(days=7)
+        current_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
+    else:
+        # إذا كنا في أول وحدة، نعتمد على تاريخ بداية المشروع مطروحاً منه 7 أيام
+        current_content_deadline_dt = active_unit_row['start'].iloc[0] - pd.Timedelta(days=7)
+        current_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
+
+    # 2. موعد محتوى الوحدة القادمة (Next): يعتمد على نهاية الوحدة الحالية
+    # هذا يحقق طلبك (موعد تسليم المدرس للوحدة القادمة يسبق نهاية عمل المصممين في الحالية بـ 7 أيام)
+    next_content_deadline_dt = active_end_date - pd.Timedelta(days=7)
+    next_deadline_str = next_content_deadline_dt.strftime('%d/%m/%Y')
 else:
-    base_deadline_dt = None
-    content_deadline_str = "N/A"
+    current_content_deadline_dt = next_content_deadline_dt = None
+    current_deadline_str = next_deadline_str = "N/A"
 
 # عرض الجداول
-for col, unit_val, label in zip(
+for col, unit_val, label, d_str, d_dt in zip(
     [c1, c2], 
     [active_unit, next_unit], 
-    ["Current", "Next"]
+    ["Current", "Next"],
+    [current_deadline_str, next_deadline_str],
+    [current_content_deadline_dt, next_content_deadline_dt]
 ):
     with col:
-        # تصميم الهيدر مع الموعد المربوط بنهاية عمل المصممين
         header_html = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
             <span style="font-size: 14px; font-weight: bold; color: #d32f2f; background-color: #ffebee; padding: 4px 10px; border-radius: 5px;">
-                📅 Content Due: {content_deadline_str}
+                📅 Content Due: {d_str}
             </span>
         </div>
         """
@@ -224,13 +237,12 @@ for col, unit_val, label in zip(
         if not df_c.empty:
             df_c['Readiness %'] = df_c['Progress_Num'] * 100
             
-            # تحديد الحالة: إذا تجاوزنا (تاريخ نهاية الوحدة الحالية - 7 أيام) ولم يكتمل المحتوى
             def determine_content_status(prog, dline_dt):
                 if prog == 100: return 'Completed'
                 if dline_dt and today > dline_dt: return 'Delayed'
                 return 'On Track'
 
-            df_c['Status'] = df_c.apply(lambda row: determine_content_status(row['Readiness %'], base_deadline_dt), axis=1)
+            df_c['Status'] = df_c.apply(lambda row: determine_content_status(row['Readiness %'], d_dt), axis=1)
             df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
             
             st.dataframe(
