@@ -91,27 +91,26 @@ def highlight_status(val):
     colors = {'Delayed': '#ff4b4b', 'At Risk': '#ffa500', 'Completed': '#00cc96'}
     return f"color: {colors.get(val, '#1f77b4')}; font-weight: bold"
 
-# --- 5. حساب المؤشرات ---
-overall_progress = df_act['Progress_Num'].mean() * 100
-course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
-active_unit_progress = (df_act[df_act['Unit'] == active_unit]['Progress_Num'].mean() * 100) if active_unit != "None" else 0
-
-# حالة المساقات (Course Status)
+# --- 5. حساب المؤشرات وحالة المساقات ---
+# دمج سجل النشاط (المصممين) مع المواعيد النهائية
 df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
-delayed_courses = df_act_merged[(df_act_merged['Progress_Num'] == 0) & (df_act_merged['End'] < today)]['Course Name'].unique()
-course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name')['Progress_Num'].mean() * 100
+
+# تحديد المساقات المتأخرة بناءً على مواعيد الـ units_deadlines فقط
+delayed_courses = df_act_merged[
+    (df_act_merged['Progress_Num'] == 0) & 
+    (df_act_merged['End'] < today)
+]['Course Name'].unique()
 
 def get_course_status(course, prog):
     if course in delayed_courses: return 'Delayed'
-    if course in course_active_prog.index and course_active_prog[course] < 70 and 0 <= days_remaining <= 3: return 'At Risk'
-    return 'Completed' if prog == 100 else 'In progress'
+    if prog == 100: return 'Completed'
+    return 'In Progress'
 
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
     'Status': [get_course_status(c, p) for c, p in zip(course_progress.index, course_progress.values)]
 })
-
 # --- 6. واجهة الهيدر ---
 header_col1, header_col2 = st.columns([1, 4])
 with header_col1:
@@ -178,50 +177,44 @@ else:
 
 st.markdown("---")
 
-# --- 9. Content Readiness ---
+# --- 9. Content Readiness (Instructor's Responsibility) ---
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-def get_cont_status(prog, days):
-    if prog == 100: return 'Completed'
-    return 'Delayed' if days < 0 else ('At Risk' if prog < 70 and 0 <= days <= 3 else 'In Progress')
+# حساب المواعيد بناءً على قاعدتك (Content N deadline = Activity N-1 deadline)
+# للوحدة الحالية في Content: موعدها هو تاريخ نهاية الوحدة الحالية في Deadlines
+current_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
 
-# حساب تواريخ الاستحقاق (أسبوع قبل نهاية الوحدة)
-active_deadline_dt = (active_end_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
+# للوحدة القادمة في Content: موعدها هو تاريخ نهاية الوحدة الحالية (أو السابقة لها زمنياً)
+# هنا نطبق القاعدة: محتوى الوحدة القادمة يجب أن يجهز مع نهاية عمل المصممين في الوحدة الحالية
+next_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
 
-if not active_unit_row.empty and active_idx + 1 < len(df_dead):
-    next_end_date = df_dead.iloc[active_idx + 1]['End']
-    next_deadline_dt = (next_end_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
-else:
-    next_deadline_dt = "N/A"
-
-for col, unit_val, label, days_val, deadline_date in zip(
+for col, unit_val, label, deadline_date in zip(
     [c1, c2], 
     [active_unit, next_unit], 
-    ["Current", "Next"], 
-    [days_remaining - 7, days_remaining],
-    [active_deadline_dt, next_deadline_dt]
+    ["Current", "Next"],
+    [current_content_deadline, next_content_deadline]
 ):
     with col:
-        # كود HTML لترتيب العنوان والتاريخ على نفس السطر (العنوان يسار، التاريخ يمين)
+        # عرض الهيدر مع الموعد المربوط بجدول الـ Activity السابق
         header_html = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
-            <span style="font-size: 14px; font-weight: bold; color: #706f6f; background-color: #f0f2f6; padding: 4px 10px; border-radius: 5px;">
-                📅 Deadline: {deadline_date}
+            <span style="font-size: 14px; font-weight: bold; color: #d32f2f; background-color: #ffebee; padding: 4px 10px; border-radius: 5px;">
+                📅 Content Due: {deadline_date}
             </span>
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
         
+        # فلترة بيانات المدرسين من الـ content_log
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
         if not df_c.empty:
             df_c['Readiness %'] = df_c['Progress_Num'] * 100
-            df_c['Status'] = df_c['Readiness %'].apply(lambda x: get_cont_status(x, days_val))
+            # الحالة تعتمد على المقارنة مع تاريخ نهاية الوحدة السابقة
+            df_c['Status'] = df_c['Readiness %'].apply(lambda x: 'Completed' if x == 100 else ('Delayed' if today > active_end_date else 'On Track'))
             df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
             st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
-        else:
-            st.info(f"No content data for Unit {unit_val}")
 # --- 10. Footer ---
 footer_html = """
 <div style="background-color: #706f6f; padding: 15px; border-radius: 8px; text-align: center; color: white; margin-top: 20px;">
