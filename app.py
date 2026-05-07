@@ -191,63 +191,48 @@ st.markdown("---")
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-# حساب المواعيد بناءً على القاعدة الجديدة: (Content Deadline = Unit Start Date - 7 Days)
+# حساب المواعيد: (Content Due = Current Unit End Date - 7 Days)
 if not active_unit_row.empty:
-    # 1. موعد المحتوى للوحدة الحالية
-    active_start_date = active_unit_row['start'].iloc[0]
-    current_content_deadline_dt = active_start_date - pd.Timedelta(days=7)
-    current_content_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
-    
-    # 2. موعد المحتوى للوحدة القادمة
-    if active_idx + 1 < len(df_dead):
-        next_unit_start_date = df_dead.iloc[active_idx + 1]['start']
-        next_content_deadline_dt = next_unit_start_date - pd.Timedelta(days=8)
-        next_content_deadline_str = next_content_deadline_dt.strftime('%d/%m/%Y')
-    else:
-        next_content_deadline_dt = None
-        next_content_deadline_str = "N/A"
+    # موعد الاستحقاق هو تاريخ نهاية عمل المصممين في الوحدة النشطة مطروحاً منه 7 أيام
+    # هذا الموعد ينطبق على محتوى الوحدة الحالية والقادمة لضمان التجهيز المسبق
+    base_deadline_dt = active_end_date - pd.Timedelta(days=7)
+    content_deadline_str = base_deadline_dt.strftime('%d/%m/%Y')
 else:
-    current_content_deadline_dt = None
-    current_content_deadline_str = "N/A"
-    next_content_deadline_dt = None
-    next_content_deadline_str = "N/A"
+    base_deadline_dt = None
+    content_deadline_str = "N/A"
 
-# عرض الجداول للوحدة الحالية والقادمة
-for col, unit_val, label, deadline_str, deadline_dt in zip(
+# عرض الجداول
+for col, unit_val, label in zip(
     [c1, c2], 
     [active_unit, next_unit], 
-    ["Current", "Next"],
-    [current_content_deadline_str, next_content_deadline_str],
-    [current_content_deadline_dt, next_content_deadline_dt]
+    ["Current", "Next"]
 ):
     with col:
-        # تصميم الهيدر (العنوان على اليسار والتاريخ على اليمين)
+        # تصميم الهيدر مع الموعد المربوط بنهاية عمل المصممين
         header_html = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
             <span style="font-size: 14px; font-weight: bold; color: #d32f2f; background-color: #ffebee; padding: 4px 10px; border-radius: 5px;">
-                📅 Content Due: {deadline_str}
+                📅 Content Due: {content_deadline_str}
             </span>
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
         
-        # فلترة وحساب إنجاز المدرسين من سجل المحتوى (Content Log)
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
         
         if not df_c.empty:
             df_c['Readiness %'] = df_c['Progress_Num'] * 100
             
-            # تحديد الحالة بناءً على التاريخ الجديد (7 أيام قبل البداية)
+            # تحديد الحالة: إذا تجاوزنا (تاريخ نهاية الوحدة الحالية - 7 أيام) ولم يكتمل المحتوى
             def determine_content_status(prog, dline_dt):
                 if prog == 100: return 'Completed'
                 if dline_dt and today > dline_dt: return 'Delayed'
                 return 'On Track'
 
-            df_c['Status'] = df_c.apply(lambda row: determine_content_status(row['Readiness %'], deadline_dt), axis=1)
+            df_c['Status'] = df_c.apply(lambda row: determine_content_status(row['Readiness %'], base_deadline_dt), axis=1)
             df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
             
-            # عرض الجدول مع التنسيق اللوني
             st.dataframe(
                 df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), 
                 use_container_width=True, 
