@@ -87,28 +87,39 @@ def highlight_status(val):
     colors = {'Delayed': '#ff4b4b', 'At Risk': '#ffa500', 'Completed': '#00cc96'}
     return f"color: {colors.get(val, '#1f77b4')}; font-weight: bold"
 
-# --- 5. حساب المؤشرات وحالة المساقات ---
-overall_progress = df_act['Progress_Num'].mean() * 100
+# --- 5. حساب المؤشرات وحالة المساقات (المنطق الجديد) ---
+
+# 1. إنجاز المساقات العام
 course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
 
-if active_unit != "None":
-    course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name')['Progress_Num'].mean() * 100
-    active_unit_progress = course_active_prog.mean()
-else:
-    course_active_prog = pd.Series(dtype='float64')
-    active_unit_progress = 0
+# 2. دمج سجل النشاط مع المواعيد النهائية لفحص كل وحدة على حدة
+df_unit_analysis = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
 
-df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
-delayed_courses = df_act_merged[(df_act_merged['Progress_Num'] == 0) & (df_act_merged['End'] < today)]['Course Name'].unique()
+# 3. تحديد المساقات التي تحتوي على "وحدة واحدة على الأقل" متأخرة
+# الوحدة المتأخرة: (تاريخ نهايتها < اليوم) و (لم تنجز بنسبة 100% في ورقة النشاط)
+delayed_course_list = df_unit_analysis[
+    (df_unit_analysis['Progress_Num'] == 0) & 
+    (df_unit_analysis['End'] < today)
+]['Course Name'].unique()
 
 def get_course_status(course_name, overall_prog):
-    if overall_prog == 100: return 'Completed'
-    active_prog = course_active_prog.get(course_name, 0)
-    if course_name in delayed_courses: return 'Delayed'
-    if active_unit != "None" and active_prog < 70 and 0 <= days_remaining <= 2:
+    # القاعدة 1: إذا كان إنجاز المساق 100%
+    if overall_prog == 100: 
+        return 'Completed'
+    
+    # القاعدة 2: إذا كان هناك أي وحدة متأخرة زمنياً ولم تنجز (حتى لو وحدة واحدة)
+    if course_name in delayed_course_list: 
+        return 'Delayed'
+    
+    # القاعدة 3: At Risk (إنجاز < 70% وباقي أقل من شهر على نهاية المشروع)
+    # تاريخ نهاية المشروع هو 20/06/2026 حسب الكود الخاص بك
+    if overall_prog < 70 and days_to_project_end < 30:
         return 'At Risk'
+        
+    # القاعدة 4: الحالة الافتراضية (طالما المواعيد محترمة والعمل مستمر)
     return 'In Progress'
 
+# بناء جدول الحالات النهائي
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
