@@ -102,7 +102,7 @@ with header_col1:
 with header_col2:
     st.markdown("<h1 style='margin-top: 6rem; margin-bottom: -10px; padding-top: 0rem; color: #706f6f;'>Online Gate project Dashboard-1st Semester </h1>", unsafe_allow_html=True)
 
-st.markdown("<hr style='margin-top: -30px; margin-bottom: 15px;'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin-top: -90px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 # --- 7. قسم الـ Metrics ---
 m1, m2, m3, m4, m5 = st.columns(5)
