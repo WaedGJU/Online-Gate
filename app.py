@@ -191,23 +191,24 @@ st.markdown("---")
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-# حساب المواعيد بناءً على منطق التزامن (Content N Due = End of Activity N-1 - 7 Days)
+# حساب المواعيد بناءً على منطق الإزاحة (Content N Due = Activity N-1 End Date)
 if not active_unit_row.empty:
     active_idx = active_unit_row.index[0]
     
-    # 1. موعد محتوى الوحدة الحالية (Current): يعتمد على نهاية الوحدة السابقة
+    # 1. موعد محتوى الوحدة الحالية (Current Unit Content):
+    # يعتمد على تاريخ نهاية الوحدة السابقة (N-1)
     if active_idx > 0:
-        prev_unit_end = df_dead.iloc[active_idx - 1]['End']
-        current_content_deadline_dt = prev_unit_end - pd.Timedelta(days=7)
+        current_content_deadline_dt = df_dead.iloc[active_idx - 1]['End']
         current_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
     else:
-        # إذا كنا في أول وحدة، نعتمد على تاريخ بداية المشروع مطروحاً منه 7 أيام
-        current_content_deadline_dt = active_unit_row['start'].iloc[0] - pd.Timedelta(days=7)
+        # إذا كنا في أول وحدة، نعتمد على تاريخ بداية المشروع
+        current_content_deadline_dt = df_dead.iloc[0]['start']
         current_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
 
-    # 2. موعد محتوى الوحدة القادمة (Next): يعتمد على نهاية الوحدة الحالية
-    # هذا يحقق طلبك (موعد تسليم المدرس للوحدة القادمة يسبق نهاية عمل المصممين في الحالية بـ 7 أيام)
-    next_content_deadline_dt = active_end_date - pd.Timedelta(days=7)
+    # 2. موعد محتوى الوحدة القادمة (Next Unit Content):
+    # يعتمد على تاريخ نهاية الوحدة الحالية (N) التي يعمل عليها المصممون الآن
+    # مثالك: إذا كانت النشطة 7، فمحتوى 8 ينتهي مع نهاية عمل المصممين في 7
+    next_content_deadline_dt = active_end_date # تاريخ نهاية الوحدة الحالية
     next_deadline_str = next_content_deadline_dt.strftime('%d/%m/%Y')
 else:
     current_content_deadline_dt = next_content_deadline_dt = None
