@@ -201,7 +201,7 @@ if not active_unit_row.empty:
     # 2. موعد المحتوى للوحدة القادمة
     if active_idx + 1 < len(df_dead):
         next_unit_start_date = df_dead.iloc[active_idx + 1]['start']
-        next_content_deadline_dt = next_unit_start_date - pd.Timedelta(days=7)
+        next_content_deadline_dt = next_unit_start_date - pd.Timedelta(days=8)
         next_content_deadline_str = next_content_deadline_dt.strftime('%d/%m/%Y')
     else:
         next_content_deadline_dt = None
