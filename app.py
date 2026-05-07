@@ -91,21 +91,37 @@ def highlight_status(val):
     colors = {'Delayed': '#ff4b4b', 'At Risk': '#ffa500', 'Completed': '#00cc96'}
     return f"color: {colors.get(val, '#1f77b4')}; font-weight: bold"
 
-# --- 5. حساب المؤشرات وحالة المساقات ---
-# دمج سجل النشاط (المصممين) مع المواعيد النهائية
+# --- 5. حساب المؤشرات (Metrics Calculations) ---
+
+# حساب نسبة الإنجاز الكلية
+overall_progress = df_act['Progress_Num'].mean() * 100
+
+# حساب إنجاز كل مساق (هذا السطر هو حل المشكلة)
+course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
+
+# حساب إنجاز الوحدة النشطة
+if active_unit != "None":
+    active_unit_progress = df_act[df_act['Unit'] == active_unit]['Progress_Num'].mean() * 100
+else:
+    active_unit_progress = 0
+
+# --- تحديد حالة المساق بناءً على المواعيد فقط ---
 df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
 
-# تحديد المساقات المتأخرة بناءً على مواعيد الـ units_deadlines فقط
+# المساقات التي تجاوزت موعد النهاية ولم تنتهِ (Progress_Num == 0)
 delayed_courses = df_act_merged[
     (df_act_merged['Progress_Num'] == 0) & 
     (df_act_merged['End'] < today)
 ]['Course Name'].unique()
 
 def get_course_status(course, prog):
-    if course in delayed_courses: return 'Delayed'
-    if prog == 100: return 'Completed'
+    if course in delayed_courses: 
+        return 'Delayed'
+    if prog == 100: 
+        return 'Completed'
     return 'In Progress'
 
+# إنشاء جدول الحالات
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
