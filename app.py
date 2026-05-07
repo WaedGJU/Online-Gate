@@ -4,6 +4,9 @@ import os
 import plotly.express as px
 
 # 1. إعدادات الصفحة
+# يجب أن يكون set_page_config هو أول أمر Streamlit يتم استدعاؤه في الكود
+st.set_page_config(page_title="Online Gate Project Dashboard- 1st Semester", layout="wide")
+
 # --- جدار الحماية (كلمة المرور) ---
 def check_password():
     if "password_correct" not in st.session_state:
@@ -12,7 +15,8 @@ def check_password():
     if not st.session_state["password_correct"]:
         st.warning("🔒 Please enter the password to proceed. For access authorization, contact Eng. Waed Alswaeer at waed.alswaer@gju.edu.jo")
         pwd = st.text_input("Password:", type="password")
-        if pwd == st.secrets["APP_PASSWORD"]: # يمكنك تغيير كلمة المرور من هنا
+        # تأكد من إضافة APP_PASSWORD في الـ Secrets الخاصة بـ Streamlit Cloud
+        if pwd == st.secrets.get("APP_PASSWORD"): 
             st.session_state["password_correct"] = True
             st.rerun()
         elif pwd:
@@ -21,8 +25,7 @@ def check_password():
     return True
 
 if not check_password():
-    st.stop() # يوقف قراءة باقي الكود وجلب البيانات حتى يتم إدخال الباسورد
-st.set_page_config(page_title="Online Gate Project Dashboard- 1st Semester", layout="wide")
+    st.stop()
 
 # كود CSS لتنسيق الصورة والعنوان
 st.markdown("""
@@ -85,6 +88,7 @@ if not active_unit_row.empty:
     next_unit = df_dead.iloc[active_idx + 1]['unit'] if active_idx + 1 < len(df_dead) else "None"
 else:
     active_unit, next_unit, days_remaining = "None", "None", 0
+    active_end_date = today # قيمة افتراضية لتجنب خطأ في حال عدم وجود وحدة نشطة
 
 # --- دالة تلوين الحالات ---
 def highlight_status(val):
@@ -93,37 +97,30 @@ def highlight_status(val):
 
 # --- 5. حساب المؤشرات (Metrics Calculations) ---
 
-# 1. إنجاز المساقات العام (لجدول الحالات)
+overall_progress = df_act['Progress_Num'].mean() * 100
 course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
 
-# 2. إنجاز الوحدة النشطة لكل مساق (للرسم البياني المكدس - هذا هو حل الخطأ)
 if active_unit != "None":
     course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name')['Progress_Num'].mean() * 100
-    active_unit_progress = course_active_prog.mean() # متوسط إنجاز الوحدة الحالية ككل
+    active_unit_progress = course_active_prog.mean() 
 else:
-    course_active_prog = pd.Series(dtype='float64') # سلسلة فارغة لتجنب الخطأ
+    course_active_prog = pd.Series(dtype='float64')
     active_unit_progress = 0
 
-# 3. تحديد الحالات بناءً على التواريخ فقط (Logic updated)
 df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
-
-# المساقات المتأخرة: أي مهمة في أي وحدة انتهى تاريخها ولم تنجز
-delayed_courses = df_act_merged[
-    (df_act_merged['Progress_Num'] == 0) & 
-    (df_act_merged['End'] < today)
-]['Course Name'].unique()
+delayed_courses = df_act_merged[(df_act_merged['Progress_Num'] == 0) & (df_act_merged['End'] < today)]['Course Name'].unique()
 
 def get_course_status(course, prog):
     if course in delayed_courses: return 'Delayed'
     if prog == 100: return 'Completed'
     return 'In Progress'
 
-# جدول الحالات النهائي
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
     'Status': [get_course_status(c, p) for c, p in zip(course_progress.index, course_progress.values)]
 })
+
 # --- 6. واجهة الهيدر ---
 header_col1, header_col2 = st.columns([1, 4])
 with header_col1:
@@ -166,7 +163,7 @@ with col_b:
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title=None)
     st.plotly_chart(fig, use_container_width=True)
 
-# --- 8.5. إنجاز الوحدة الفعالة لكل مساق (الرسم الجديد) ---
+# --- 8.5. إنجاز الوحدة الفعالة لكل مساق ---
 st.markdown("---")
 st.subheader(f"📊 Active Unit ({active_unit}) Progress per Course")
 
@@ -190,16 +187,11 @@ else:
 
 st.markdown("---")
 
-# --- 9. Content Readiness (Instructor's Responsibility) ---
+# --- 9. Content Readiness ---
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-# حساب المواعيد بناءً على قاعدتك (Content N deadline = Activity N-1 deadline)
-# للوحدة الحالية في Content: موعدها هو تاريخ نهاية الوحدة الحالية في Deadlines
 current_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
-
-# للوحدة القادمة في Content: موعدها هو تاريخ نهاية الوحدة الحالية (أو السابقة لها زمنياً)
-# هنا نطبق القاعدة: محتوى الوحدة القادمة يجب أن يجهز مع نهاية عمل المصممين في الوحدة الحالية
 next_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
 
 for col, unit_val, label, deadline_date in zip(
@@ -209,7 +201,6 @@ for col, unit_val, label, deadline_date in zip(
     [current_content_deadline, next_content_deadline]
 ):
     with col:
-        # عرض الهيدر مع الموعد المربوط بجدول الـ Activity السابق
         header_html = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
@@ -220,14 +211,13 @@ for col, unit_val, label, deadline_date in zip(
         """
         st.markdown(header_html, unsafe_allow_html=True)
         
-        # فلترة بيانات المدرسين من الـ content_log
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
         if not df_c.empty:
             df_c['Readiness %'] = df_c['Progress_Num'] * 100
-            # الحالة تعتمد على المقارنة مع تاريخ نهاية الوحدة السابقة
             df_c['Status'] = df_c['Readiness %'].apply(lambda x: 'Completed' if x == 100 else ('Delayed' if today > active_end_date else 'On Track'))
             df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
             st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
+
 # --- 10. Footer ---
 footer_html = """
 <div style="background-color: #706f6f; padding: 15px; border-radius: 8px; text-align: center; color: white; margin-top: 20px;">
