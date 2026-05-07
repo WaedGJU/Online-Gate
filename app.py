@@ -4,16 +4,16 @@ import os
 import plotly.express as px
 
 # 1. إعدادات الصفحة
-st.set_page_config(page_title="Online Gate Dashboard", layout="wide")
+st.set_page_config(page_title="Online Gate Project Dashboard- 1st Semester", layout="wide")
 
 # كود CSS لتنسيق الصورة والعنوان
 st.markdown("""
     <style>
            [data-testid="stImage"] {
-                margin-top: -40px; 
+                margin-top: -60px; 
             }
            .block-container {
-                padding-top: 2rem;
+                padding-top: 4rem;
             }
     </style>
     """, unsafe_allow_html=True)
