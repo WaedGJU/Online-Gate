@@ -184,7 +184,7 @@ c1, c2 = st.columns(2)
 
 def get_cont_status(prog, days):
     if prog == 100: return 'Completed'
-    return 'Delayed' if days < 0 else ('At Risk' if prog < 70 and 0 <= days <= 3 else 'On Track')
+    return 'Delayed' if days < 0 else ('At Risk' if prog < 70 and 0 <= days <= 3 else 'In Progress')
 
 # حساب تواريخ الاستحقاق (أسبوع قبل نهاية الوحدة)
 active_deadline_dt = (active_end_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
