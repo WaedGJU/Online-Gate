@@ -95,26 +95,39 @@ def highlight_status(val):
     colors = {'Delayed': '#ff4b4b', 'At Risk': '#ffa500', 'Completed': '#00cc96'}
     return f"color: {colors.get(val, '#1f77b4')}; font-weight: bold"
 
-# --- 5. حساب المؤشرات (Metrics Calculations) ---
+# --- 5. حساب المؤشرات وحالة المساقات ---
 
-overall_progress = df_act['Progress_Num'].mean() * 100
+# 1. إنجاز المساقات العام
 course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
 
+# 2. إنجاز الوحدة النشطة لكل مساق (للحالة وللرسم البياني)
 if active_unit != "None":
     course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name')['Progress_Num'].mean() * 100
-    active_unit_progress = course_active_prog.mean() 
+    active_unit_progress = course_active_prog.mean()
 else:
     course_active_prog = pd.Series(dtype='float64')
     active_unit_progress = 0
 
+# 3. تحديد المساقات المتأخرة بناءً على المواعيد السابقة
 df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
 delayed_courses = df_act_merged[(df_act_merged['Progress_Num'] == 0) & (df_act_merged['End'] < today)]['Course Name'].unique()
 
-def get_course_status(course, prog):
-    if course in delayed_courses: return 'Delayed'
-    if prog == 100: return 'Completed'
+def get_course_status(course_name, overall_prog):
+    if overall_prog == 100: return 'Completed'
+    
+    # نسبة إنجاز الوحدة النشطة لهذا المساق تحديداً
+    active_prog = course_active_prog.get(course_name, 0)
+    
+    # 1. Delayed: إذا كان هناك أي وحدة سابقة انتهى موعدها ولم تنجز
+    if course_name in delayed_courses: return 'Delayed'
+    
+    # 2. At Risk: إذا كان الإنجاز < 70% وباقي يومين أو أقل على نهاية الوحدة النشطة
+    if active_unit != "None" and active_prog < 70 and 0 <= days_remaining <= 2:
+        return 'At Risk'
+        
     return 'In Progress'
 
+# جدول الحالات النهائي
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
