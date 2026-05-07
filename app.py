@@ -104,7 +104,7 @@ course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name'
 def get_course_status(course, prog):
     if course in delayed_courses: return 'Delayed'
     if course in course_active_prog.index and course_active_prog[course] < 70 and 0 <= days_remaining <= 3: return 'At Risk'
-    return 'Completed' if prog == 100 else 'On Track'
+    return 'Completed' if prog == 100 else 'In progress'
 
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
