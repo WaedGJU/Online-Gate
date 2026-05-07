@@ -182,22 +182,19 @@ st.markdown("---")
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-# وظيفة لتحديد لون الحالة
 def get_cont_status(prog, days):
     if prog == 100: return 'Completed'
     return 'Delayed' if days < 0 else ('At Risk' if prog < 70 and 0 <= days <= 3 else 'On Track')
 
-# حساب تواريخ الاستحقاق للمحتوى (أسبوع قبل نهاية الوحدة)
+# حساب تواريخ الاستحقاق (أسبوع قبل نهاية الوحدة)
 active_deadline_dt = (active_end_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
 
-# جلب تاريخ نهاية الوحدة القادمة لحساب موعد محتواها
 if not active_unit_row.empty and active_idx + 1 < len(df_dead):
     next_end_date = df_dead.iloc[active_idx + 1]['End']
     next_deadline_dt = (next_end_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
 else:
     next_deadline_dt = "N/A"
 
-# عرض الجداول
 for col, unit_val, label, days_val, deadline_date in zip(
     [c1, c2], 
     [active_unit, next_unit], 
@@ -206,9 +203,16 @@ for col, unit_val, label, days_val, deadline_date in zip(
     [active_deadline_dt, next_deadline_dt]
 ):
     with col:
-        # إضافة التاريخ بجانب العنوان بتنسيق مميز
-        st.markdown(f"### **{label} Unit: {unit_val}**")
-        st.markdown(f"📅 **Content Deadline: {deadline_date}**")
+        # كود HTML لترتيب العنوان والتاريخ على نفس السطر (العنوان يسار، التاريخ يمين)
+        header_html = f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
+            <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
+            <span style="font-size: 14px; font-weight: bold; color: #706f6f; background-color: #f0f2f6; padding: 4px 10px; border-radius: 5px;">
+                📅 Deadline: {deadline_date}
+            </span>
+        </div>
+        """
+        st.markdown(header_html, unsafe_allow_html=True)
         
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
         if not df_c.empty:
@@ -218,7 +222,6 @@ for col, unit_val, label, days_val, deadline_date in zip(
             st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
         else:
             st.info(f"No content data for Unit {unit_val}")
-
 # --- 10. Footer ---
 footer_html = """
 <div style="background-color: #706f6f; padding: 15px; border-radius: 8px; text-align: center; color: white; margin-top: 20px;">
