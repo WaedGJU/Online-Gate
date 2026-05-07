@@ -187,47 +187,74 @@ else:
 
 st.markdown("---")
 
-# --- 9. Content Readiness ---
+# --- 9. Content Readiness (Instructor's Responsibility) ---
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
-current_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
-next_content_deadline = active_end_date.strftime('%d/%m/%Y') if active_unit != "None" else "N/A"
+# حساب المواعيد بناءً على القاعدة الجديدة: (Content Deadline = Unit Start Date - 7 Days)
+if not active_unit_row.empty:
+    # 1. موعد المحتوى للوحدة الحالية
+    active_start_date = active_unit_row['start'].iloc[0]
+    current_content_deadline_dt = active_start_date - pd.Timedelta(days=7)
+    current_content_deadline_str = current_content_deadline_dt.strftime('%d/%m/%Y')
+    
+    # 2. موعد المحتوى للوحدة القادمة
+    if active_idx + 1 < len(df_dead):
+        next_unit_start_date = df_dead.iloc[active_idx + 1]['start']
+        next_content_deadline_dt = next_unit_start_date - pd.Timedelta(days=7)
+        next_content_deadline_str = next_content_deadline_dt.strftime('%d/%m/%Y')
+    else:
+        next_content_deadline_dt = None
+        next_content_deadline_str = "N/A"
+else:
+    current_content_deadline_dt = None
+    current_content_deadline_str = "N/A"
+    next_content_deadline_dt = None
+    next_content_deadline_str = "N/A"
 
-for col, unit_val, label, deadline_date in zip(
+# عرض الجداول للوحدة الحالية والقادمة
+for col, unit_val, label, deadline_str, deadline_dt in zip(
     [c1, c2], 
     [active_unit, next_unit], 
     ["Current", "Next"],
-    [current_content_deadline, next_content_deadline]
+    [current_content_deadline_str, next_content_deadline_str],
+    [current_content_deadline_dt, next_content_deadline_dt]
 ):
     with col:
+        # تصميم الهيدر (العنوان على اليسار والتاريخ على اليمين)
         header_html = f"""
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
             <span style="font-size: 16px; font-weight: bold;">{label} Unit: {unit_val}</span>
             <span style="font-size: 14px; font-weight: bold; color: #d32f2f; background-color: #ffebee; padding: 4px 10px; border-radius: 5px;">
-                📅 Content Due: {deadline_date}
+                📅 Content Due: {deadline_str}
             </span>
         </div>
         """
         st.markdown(header_html, unsafe_allow_html=True)
         
+        # فلترة وحساب إنجاز المدرسين من سجل المحتوى (Content Log)
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
-        # --- تعديل منطق تواريخ استحقاق المحتوى ---
+        
+        if not df_c.empty:
+            df_c['Readiness %'] = df_c['Progress_Num'] * 100
+            
+            # تحديد الحالة بناءً على التاريخ الجديد (7 أيام قبل البداية)
+            def determine_content_status(prog, dline_dt):
+                if prog == 100: return 'Completed'
+                if dline_dt and today > dline_dt: return 'Delayed'
+                return 'On Track'
 
-if not active_unit_row.empty:
-    # 1. موعد المحتوى للوحدة الحالية: تاريخ بداية الوحدة الحالية مطروحاً منه 7 أيام
-    active_start_date = active_unit_row['start'].iloc[0]
-    current_content_deadline = (active_start_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
-    
-    # 2. موعد المحتوى للوحدة القادمة: تاريخ بداية الوحدة القادمة مطروحاً منه 7 أيام
-    if active_idx + 1 < len(df_dead):
-        next_unit_start_date = df_dead.iloc[active_idx + 1]['start']
-        next_content_deadline = (next_unit_start_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
-    else:
-        next_content_deadline = "N/A"
-else:
-    current_content_deadline = "N/A"
-    next_content_deadline = "N/A"
+            df_c['Status'] = df_c.apply(lambda row: determine_content_status(row['Readiness %'], deadline_dt), axis=1)
+            df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
+            
+            # عرض الجدول مع التنسيق اللوني
+            st.dataframe(
+                df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), 
+                use_container_width=True, 
+                hide_index=True
+            )
+        else:
+            st.info(f"No content data available for Unit {unit_val}")
 # --- 10. Footer ---
 footer_html = """
 <div style="background-color: #706f6f; padding: 15px; border-radius: 8px; text-align: center; color: white; margin-top: 20px;">
