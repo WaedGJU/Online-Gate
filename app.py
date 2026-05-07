@@ -98,7 +98,7 @@ course_status_df = pd.DataFrame({
 header_col1, header_col2 = st.columns([1, 4])
 with header_col1:
     logo_path = os.path.join(CURRENT_DIR, "1.png")
-    if os.path.exists(logo_path): st.image(logo_path, width=250)
+    if os.path.exists(logo_path): st.image(logo_path, width=500)
 with header_col2:
     st.markdown("<h1 style='margin-top: 1.5rem; margin-bottom: -10px; padding-top: 0rem; color: #706f6f;'>Online Gate project Dashboard-1st Semester </h1>", unsafe_allow_html=True)
 
