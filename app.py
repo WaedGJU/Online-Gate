@@ -10,7 +10,7 @@ def check_password():
         st.session_state["password_correct"] = False
 
     if not st.session_state["password_correct"]:
-        st.warning("🔒 This dashboard is private. Please enter the password.")
+        st.warning("🔒 Please enter the password to proceed. For access authorization, contact Eng. Waed Alswaeer at waed.alswaer@gju.edu.jo.")
         pwd = st.text_input("Password:", type="password")
         if pwd == "Gate@2026": # يمكنك تغيير كلمة المرور من هنا
             st.session_state["password_correct"] = True
