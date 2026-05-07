@@ -212,12 +212,22 @@ for col, unit_val, label, deadline_date in zip(
         st.markdown(header_html, unsafe_allow_html=True)
         
         df_c = df_cont[df_cont['Unit'] == unit_val].groupby(['Instructor', 'Course Name'])['Progress_Num'].mean().reset_index()
-        if not df_c.empty:
-            df_c['Readiness %'] = df_c['Progress_Num'] * 100
-            df_c['Status'] = df_c['Readiness %'].apply(lambda x: 'Completed' if x == 100 else ('Delayed' if today > active_end_date else 'On Track'))
-            df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
-            st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
+        # --- تعديل منطق تواريخ استحقاق المحتوى ---
 
+if not active_unit_row.empty:
+    # 1. موعد المحتوى للوحدة الحالية: تاريخ بداية الوحدة الحالية مطروحاً منه 7 أيام
+    active_start_date = active_unit_row['start'].iloc[0]
+    current_content_deadline = (active_start_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
+    
+    # 2. موعد المحتوى للوحدة القادمة: تاريخ بداية الوحدة القادمة مطروحاً منه 7 أيام
+    if active_idx + 1 < len(df_dead):
+        next_unit_start_date = df_dead.iloc[active_idx + 1]['start']
+        next_content_deadline = (next_unit_start_date - pd.Timedelta(days=7)).strftime('%d/%m/%Y')
+    else:
+        next_content_deadline = "N/A"
+else:
+    current_content_deadline = "N/A"
+    next_content_deadline = "N/A"
 # --- 10. Footer ---
 footer_html = """
 <div style="background-color: #706f6f; padding: 15px; border-radius: 8px; text-align: center; color: white; margin-top: 20px;">
