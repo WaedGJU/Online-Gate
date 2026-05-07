@@ -4,6 +4,24 @@ import os
 import plotly.express as px
 
 # 1. إعدادات الصفحة
+# --- جدار الحماية (كلمة المرور) ---
+def check_password():
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if not st.session_state["password_correct"]:
+        st.warning("🔒 This dashboard is private. Please enter the password.")
+        pwd = st.text_input("Password:", type="password")
+        if pwd == "Gate@2026": # يمكنك تغيير كلمة المرور من هنا
+            st.session_state["password_correct"] = True
+            st.rerun()
+        elif pwd:
+            st.error("❌ Incorrect Password")
+        return False
+    return True
+
+if not check_password():
+    st.stop() # يوقف قراءة باقي الكود وجلب البيانات حتى يتم إدخال الباسورد
 st.set_page_config(page_title="Online Gate Project Dashboard- 1st Semester", layout="wide")
 
 # كود CSS لتنسيق الصورة والعنوان
