@@ -12,7 +12,7 @@ def check_password():
     if not st.session_state["password_correct"]:
         st.warning("🔒 Please enter the password to proceed. For access authorization, contact Eng. Waed Alswaeer at waed.alswaer@gju.edu.jo.TEST")
         pwd = st.text_input("Password:", type="password")
-        if pwd == "Gate@2026": # يمكنك تغيير كلمة المرور من هنا
+        if pwd == st.secrets["APP_PASSWORD"]: # يمكنك تغيير كلمة المرور من هنا
             st.session_state["password_correct"] = True
             st.rerun()
         elif pwd:
