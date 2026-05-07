@@ -93,35 +93,32 @@ def highlight_status(val):
 
 # --- 5. حساب المؤشرات (Metrics Calculations) ---
 
-# حساب نسبة الإنجاز الكلية
-overall_progress = df_act['Progress_Num'].mean() * 100
-
-# حساب إنجاز كل مساق (هذا السطر هو حل المشكلة)
+# 1. إنجاز المساقات العام (لجدول الحالات)
 course_progress = df_act.groupby('Course Name')['Progress_Num'].mean() * 100
 
-# حساب إنجاز الوحدة النشطة
+# 2. إنجاز الوحدة النشطة لكل مساق (للرسم البياني المكدس - هذا هو حل الخطأ)
 if active_unit != "None":
-    active_unit_progress = df_act[df_act['Unit'] == active_unit]['Progress_Num'].mean() * 100
+    course_active_prog = df_act[df_act['Unit'] == active_unit].groupby('Course Name')['Progress_Num'].mean() * 100
+    active_unit_progress = course_active_prog.mean() # متوسط إنجاز الوحدة الحالية ككل
 else:
+    course_active_prog = pd.Series(dtype='float64') # سلسلة فارغة لتجنب الخطأ
     active_unit_progress = 0
 
-# --- تحديد حالة المساق بناءً على المواعيد فقط ---
+# 3. تحديد الحالات بناءً على التواريخ فقط (Logic updated)
 df_act_merged = df_act.merge(df_dead, left_on='Unit', right_on='unit', how='left')
 
-# المساقات التي تجاوزت موعد النهاية ولم تنتهِ (Progress_Num == 0)
+# المساقات المتأخرة: أي مهمة في أي وحدة انتهى تاريخها ولم تنجز
 delayed_courses = df_act_merged[
     (df_act_merged['Progress_Num'] == 0) & 
     (df_act_merged['End'] < today)
 ]['Course Name'].unique()
 
 def get_course_status(course, prog):
-    if course in delayed_courses: 
-        return 'Delayed'
-    if prog == 100: 
-        return 'Completed'
+    if course in delayed_courses: return 'Delayed'
+    if prog == 100: return 'Completed'
     return 'In Progress'
 
-# إنشاء جدول الحالات
+# جدول الحالات النهائي
 course_status_df = pd.DataFrame({
     'Course Name': course_progress.index,
     'Overall Progress (%)': [f"{val:.2f}%" for val in course_progress.values],
