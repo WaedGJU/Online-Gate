@@ -34,12 +34,14 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # 2. تحديد المسار والروابط
+# 2. تحديد المسار والروابط
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-URL_ACT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=163756926&single=true&output=csv"
-URL_CONT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=1390356673&single=true&output=csv"
-URL_INFO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=1113105367&single=true&output=csv"
-URL_DEAD = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=574481000&single=true&output=csv"
 
+# جلب الروابط من secrets
+URL_ACT = st.secrets["URL_ACT"]
+URL_CONT = st.secrets["URL_CONT"]
+URL_INFO = st.secrets["URL_INFO"]
+URL_DEAD = st.secrets["URL_DEAD"]
 # 3. دالة تحميل البيانات
 @st.cache_data(ttl=30)
 def load_data():
