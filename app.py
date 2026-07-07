@@ -193,7 +193,7 @@ st.markdown("---")
 
 
 # --- 9. Content Readiness (Instructor's Responsibility) ---
-st.subheader("📄 Content Readiness (Instructor's Responsibility)")
+st.subheader("📄 Active Unit Content Readiness (Instructor's Responsibility)")
 c1, c2 = st.columns(2)
 
 if not active_unit_row.empty:
