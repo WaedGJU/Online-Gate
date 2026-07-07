@@ -75,35 +75,43 @@ import plotly.express as px
 # --- 2.5. Sidebar Filters (فلاتر القائمة الجانبية) ---
 # ==========================================
 
-# إضافة عنوان وخط فاصل في القائمة الجانبية (يسار الشاشة)
-st.sidebar.markdown("Dashboard Filters")
+# ==========================================
+# --- 2.5. Sidebar Filters ---
+# ==========================================
+
+st.sidebar.markdown("### 🔍 Dashboard Filters")
 st.sidebar.markdown("---")
 
-# 1. فلتر الفصول الدراسية (Semester) باستخدام أزرار (Radio)
-sem_col = 'Semester' if 'Semester' in df_cont.columns else ('Term' if 'Term' in df_cont.columns else None)
+# 1. Semester Filter
+sem_col = 'Semester' if 'Semester' in df_info.columns else ('Term' if 'Term' in df_info.columns else None)
 
 if sem_col:
-    semester_options = ["All"] + list(df_cont[sem_col].dropna().unique())
-    selected_semester = st.sidebar.radio("📅 Semester", semester_options)
+    semester_options = ["All"] + list(df_info[sem_col].dropna().unique())
+    selected_semester = st.sidebar.radio("📅 Semester:", semester_options)
 else:
     selected_semester = "All"
 
 st.sidebar.markdown("---")
 
-# 2. فلتر المصممين التعليميين (Instructional Designer) باستخدام أزرار (Radio)
+# 2. Instructional Designer Filter
 designer_col = 'Instructional Designer' if 'Instructional Designer' in df_cont.columns else ('Led ID' if 'Led ID' in df_cont.columns else None)
 
 if designer_col:
-    designer_options = ["All / الكل"] + list(df_cont[designer_col].dropna().unique())
-    selected_designer = st.sidebar.radio("🎨 Instructional Designer", designer_options)
+    designer_options = ["All"] + list(df_cont[designer_col].dropna().unique())
+    selected_designer = st.sidebar.radio("🎨 Designer:", designer_options)
 else:
     selected_designer = "All"
 
-# --- تطبيق الفلاتر ديناميكياً على البيانات (df_cont و df_act) ---
-if selected_semester != "All" and sem_col:
-    df_cont = df_cont[df_cont[sem_col] == selected_semester]
-    df_act = df_act[df_act[sem_col] == selected_semester]
+# --- Apply Filters Dynamically ---
 
+# Apply Semester Filter
+if selected_semester != "All" and sem_col:
+    courses_in_semester = df_info[df_info[sem_col] == selected_semester]['Course_Name'].tolist()
+    
+    df_cont = df_cont[df_cont['Course Name'].isin(courses_in_semester)]
+    df_act = df_act[df_act['Course Name'].isin(courses_in_semester)]
+
+# Apply Designer Filter
 if selected_designer != "All" and designer_col:
     df_cont = df_cont[df_cont[designer_col] == selected_designer]
     df_act = df_act[df_act[designer_col] == selected_designer]
