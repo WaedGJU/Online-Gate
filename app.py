@@ -72,10 +72,6 @@ import pandas as pd
 import os
 import plotly.express as px
 
-# ==========================================
-# ==========================================
-# --- 2.5. Sidebar Filters (فلاتر القائمة الجانبية) ---
-# ==========================================
 
 # ==========================================
 # --- 2.5. Sidebar Filters ---
@@ -210,19 +206,23 @@ m5.metric("📅 Project Deadline", "25/12/2026", f"{days_to_project_end} Days Le
 
 st.markdown("---")
 
-# --- القسم الجديد: أعمدة إنجاز المصممين التعليميين ---
+# --- القسم الجديد: أعمدة إنجاز المصممين التعليميين بناءً على الـ Activity Log ---
 
-st.subheader("Instructional Designers Progress")
+st.subheader("Instructional Designers Progress (Activity Log)")
 
-# تحديد العمود الخاص بالمصممين لضمان عدم حدوث أخطاء في التسمية
-designer_col = 'Led ID' if 'Led ID' in df_cont.columns else ('ID_Lead' if 'ID_Lead' in df_cont.columns else None)
+# ملاحظة: تأكد من أنك قمت بقراءة ملف Activity_Log وتخزينه في df_act
+# وتأكد من أن هناك عموداً يمثل الإنجاز (مثل 'Done' أو عمود رقمي)
+# إذا كان عمود 'Done' يحتوي على نص "Done" وآخر فارغ، يجب تحويله أولاً:
+# df_act['Progress_Num'] = df_act['Done'].apply(lambda x: 1 if x == 'Done' else 0)
 
-if designer_col and not df_cont.empty:
-    # حساب متوسط نسبة الإنجاز لكل مصمم تعليمي
-    df_designer_prog = df_cont.groupby(designer_col)['Progress_Num'].mean().reset_index()
+designer_col = 'Led ID' if 'Led ID' in df_act.columns else ('ID_Lead' if 'ID_Lead' in df_act.columns else None)
+
+if designer_col and not df_act.empty and 'Progress_Num' in df_act.columns:
+    # حساب متوسط نسبة الإنجاز لكل مصمم تعليمي من Activity Log
+    df_designer_prog = df_act.groupby(designer_col)['Progress_Num'].mean().reset_index()
     df_designer_prog['Progress (%)'] = df_designer_prog['Progress_Num'] * 100
     
-    # توليد أعمدة بعدد المصممين الموجودين تلقائياً لضمان التوزيع المتساوي
+    # توليد أعمدة بعدد المصممين الموجودين تلقائياً
     num_designers = len(df_designer_prog)
     if num_designers > 0:
         designer_cols = st.columns(num_designers)
@@ -232,17 +232,16 @@ if designer_col and not df_cont.empty:
             progress_val = row['Progress (%)']
             
             with designer_cols[idx]:
-                # تصميم الكارت بنفس التنسيق العام والهوية البصرية للوحة التحكم
+                # الكارت الخاص بالمصمم
                 designer_card_html = f"""
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-top: 5px solid #0d86c8; text-align: center; margin-bottom: 15px;">
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-top: 5px solid #28a745; text-align: center; margin-bottom: 15px;">
                     <span style="font-size: 15px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 8px;">{designer_name}</span>
-                    <span style="font-size: 28px; font-weight: bold; color: #0d86c8;">{progress_val:.1f}%</span>
+                    <span style="font-size: 28px; font-weight: bold; color: #28a745;">{progress_val:.1f}%</span>
                 </div>
                 """
                 st.markdown(designer_card_html, unsafe_allow_html=True)
 else:
-    st.info("No designer data available to display progress columns.")
-
+    st.info("No activity log data available to display designer progress.")
 # --- 8. الجداول والرسومات ---
 col_a, col_b = st.columns(2)
 with col_a:
