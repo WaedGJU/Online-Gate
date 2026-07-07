@@ -4,7 +4,7 @@ import os
 import plotly.express as px
 
 # 1. إعدادات الصفحة (يجب أن يكون أول أمر)
-st.set_page_config(page_title="Online Gate Project Dashboard- 1st Semester", layout="wide")
+st.set_page_config(page_title="Online Gate Project Dashboard- Phase II", layout="wide")
 
 # --- جدار الحماية (كلمة المرور) ---
 def check_password():
@@ -35,10 +35,10 @@ st.markdown("""
 
 # 2. تحديد المسار والروابط
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-URL_ACT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=163756926&single=true&output=csv"
-URL_CONT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=1390356673&single=true&output=csv"
-URL_INFO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=1113105367&single=true&output=csv"
-URL_DEAD = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5JN5Bdu51RK2ldTDtMU5IBvSN4kkJxv06zbN7oyPFe41YgX6kZFvRrlFU89Pw8BS4WxA2NSq5C-OL/pub?gid=574481000&single=true&output=csv"
+URL_ACT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1795333917&single=true&output=csv"
+URL_CONT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1631998533&single=true&output=csv"
+URL_INFO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1338069770&single=true&output=csv"
+URL_DEAD = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1791071784&single=true&output=csv"
 
 # 3. دالة تحميل البيانات
 @st.cache_data(ttl=30)
@@ -67,7 +67,7 @@ except Exception:
 
 # 4. المعالجة الزمنية
 today = pd.to_datetime('today').normalize()
-project_deadline = pd.to_datetime('2026-06-20')
+project_deadline = pd.to_datetime('2026-12-25')
 days_to_project_end = (project_deadline - today).days
 
 active_unit_row = df_dead[(df_dead['start'] <= today) & (df_dead['End'] >= today)]
@@ -151,7 +151,7 @@ m1.metric("🎯 Total Progress", f"{overall_progress:.2f}%")
 m2.metric("📍 Active Unit", f"Unit {active_unit}", f"{days_remaining} Days Left", delta_color="off")
 m3.metric("🚀 Unit Progress", f"{active_unit_progress:.2f}%")
 m4.metric("⏭️ Next Unit", f"Unit {next_unit}")
-m5.metric("📅 Project Deadline", "20/06/2026", f"{days_to_project_end} Days Left")
+m5.metric("📅 Project Deadline", "25/12/2026", f"{days_to_project_end} Days Left")
 
 st.markdown("---")
 
