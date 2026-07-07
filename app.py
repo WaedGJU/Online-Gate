@@ -227,55 +227,33 @@ for col, unit_val, label, d_str, d_dt in zip([c1, c2], [active_unit, next_unit],
             st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
         else:
             st.info(f"No content data for Unit {unit_val}")
+# --- 8.7. Overall Content Readiness per Course ---
+st.markdown("---")
+st.subheader("📚 Overall Content Readiness per Course")
 
-# --- القسم الجديد: رسم بياني لإجمالي جاهزية المحتوى لكل مساق ---
-st.markdown("---")  # خط فاصل لتنظيم واجهة المستخدم
-
-course_header_html = """
-<div style="display: flex; justify-content: space-between; align-items: center; background-color: #f8f9fa; padding: 10px 15px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-top: 20px; margin-bottom: 15px; border-left: 5px solid #0284c7;">
-    <span style="font-size: 18px; font-weight: bold; color: #0284c7;">📊 Overall Content Readiness per Course (إجمالي جاهزية المحتوى لكل مساق)</span>
-</div>
-"""
-st.markdown(course_header_html, unsafe_allow_html=True)
-
-# حساب متوسط نسبة الإنجاز للمحتوى لكل مساق
+# تجميع البيانات وحساب نسبة الإنجاز
 df_overall_course = df_cont.groupby('Course Name')['Progress_Num'].mean().reset_index()
 
 if not df_overall_course.empty:
-    # تحويل القيمة إلى نسبة مئوية
-    df_overall_course['Readiness %'] = df_overall_course['Progress_Num'] * 100
+    # تجهيز الأعمدة لتطابق التنسيق المعتمد
+    df_overall_course.rename(columns={'Progress_Num': 'Completed (%)'}, inplace=True)
+    df_overall_course['Completed (%)'] = df_overall_course['Completed (%)'] * 100
+    df_overall_course['Remaining (%)'] = 100 - df_overall_course['Completed (%)']
     
-    # ترتيب المساقات تنازلياً ليظهر المساق الأكثر إنجازاً في الأعلى
-    df_overall_course = df_overall_course.sort_values(by='Readiness %', ascending=True)
-    
-    # بناء الرسم البياني الشريطي الأفقي (Horizontal Bar Chart)
-    fig_course_readiness = px.bar(
-        df_overall_course,
-        x='Readiness %',
-        y='Course Name',
-        orientation='h',  # جعل الأعمدة أفقية لعرض الأسماء بوضوح
-        text=df_overall_course['Readiness %'].apply(lambda x: f"{x:.1f}%"),  # إضافة النسبة كعنوان على العمود
-        labels={'Readiness %': 'Readiness Percentage (%)', 'Course Name': 'Course Name'},
-        color_discrete_sequence=['#0284c7']  # استخدام نفس اللون الأزرق المعتمد في الهيدر
+    # بناء الرسم البياني العمودي بنفس الألوان والأسلوب
+    fig_content = px.bar(
+        df_overall_course, 
+        x='Course Name', 
+        y=['Completed (%)', 'Remaining (%)'],
+        color_discrete_map={'Completed (%)': '#0d86c8', 'Remaining (%)': '#e6e9ef'}
     )
     
-    # تحسين مظهر الرسم البياني ليتناسق مع ألوان وتصميم لوحة التحكم
-    fig_course_readiness.update_traces(
-        textposition='outside',  # وضع الأرقام خارج الأعمدة
-        cliponaxis=False         # منع قص النصوص عند أطراف الرسم
-    )
+    # توحيد هوامش ومحاور الرسم البياني مع باقي رسومات الـ Dashboard
+    fig_content.update_yaxes(range=[0, 100])
+    fig_content.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title=None)
     
-    fig_course_readiness.update_layout(
-        xaxis=dict(range=[0, 115], showgrid=True, gridcolor='#e5e7eb'),  # ترك مساحة مريحة للنصوص
-        yaxis=dict(showgrid=False),
-        margin=dict(l=20, r=20, t=10, b=10),
-        height=400,  # طول مناسب للرسم ليتسع لكافة المساقات بشكل مريح
-        paper_bgcolor='rgba(0,0,0,0)',  # خلفية شفافة تندمج مع لوحة التحكم
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    
-    # عرض الرسم البياني داخل الـ Dashboard
-    st.plotly_chart(fig_course_readiness, use_container_width=True)
+    # استخدام key فريد لتجنب تضارب العناصر (DuplicateElementId)
+    st.plotly_chart(fig_content, use_container_width=True, key="overall_content_chart_unique")
 else:
     st.info("No content data available to display the chart.")
 # --- 10. Footer ---
