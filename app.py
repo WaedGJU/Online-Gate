@@ -222,10 +222,7 @@ for col, unit_val, label, d_str, d_dt in zip([c1, c2], [active_unit, next_unit],
         if not df_c.empty:
             df_c['Readiness %'] = df_c['Progress_Num'] * 100
             df_c['Status'] = df_c['Readiness %'].apply(lambda x: 'Completed' if x == 100 else ('Delayed' if d_dt and today > d_dt else 'In progress'))
-            st.dataframe(
-            df_c.style.format({'Readiness %': '{:.2f}%'}).map(highlight_status, subset=['Status']),
-            use_container_width=True, 
-            hide_index=True)
+            df_c['Readiness %'] = df_c['Readiness %'].apply(lambda x: f"{x:.2f}%")
             st.dataframe(df_c[['Instructor', 'Course Name', 'Readiness %', 'Status']].style.map(highlight_status, subset=['Status']), use_container_width=True, hide_index=True)
         else:
             st.info(f"No content data for Unit {unit_val}")
