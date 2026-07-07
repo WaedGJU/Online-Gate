@@ -94,18 +94,18 @@ with col_filter2:
     designer_col = 'Led ID' if 'Led ID' in df_cont.columns else ('Instructional Designer' if 'Instructional Designer' in df_cont.columns else None)
     
     if designer_col:
-        designer_options = ["All / الكل"] + list(df_cont[designer_col].dropna().unique())
-        selected_designer = st.selectbox("🎨 Filter by Designer (تصفية حسب المصمم التعليمي):", designer_options)
+        designer_options = ["All"] + list(df_cont[designer_col].dropna().unique())
+        selected_designer = st.selectbox(" Filter by Instructional Designer ):", designer_options)
     else:
-        selected_designer = "All / الكل"
+        selected_designer = "All"
 
 # --- تطبيق الفلاتر ديناميكياً على البيانات الأساسية قبل العرض ---
-if selected_semester != "All / الكل" and sem_col:
+if selected_semester != "All" and sem_col:
     df_cont = df_cont[df_cont[sem_col] == selected_semester]
     if 'df_act' in locals() or 'df_act' in globals():
         df_act = df_act[df_act[sem_col] == selected_semester]
 
-if selected_designer != "All / الكل" and designer_col:
+if selected_designer != "All" and designer_col:
     df_cont = df_cont[df_cont[designer_col] == selected_designer]
     if 'df_act' in locals() or 'df_act' in globals():
         df_act = df_act[df_act[designer_col] == selected_designer]
@@ -200,6 +200,39 @@ m4.metric("⏭️ Next Unit", f"Unit {next_unit}")
 m5.metric("📅 Project Deadline", "25/12/2026", f"{days_to_project_end} Days Left")
 
 st.markdown("---")
+
+# --- القسم الجديد: أعمدة إنجاز المصممين التعليميين ---
+st.markdown("---")
+st.subheader("🎨 Instructional Designers Progress (إنجاز المصممين التعليميين)")
+
+# تحديد العمود الخاص بالمصممين لضمان عدم حدوث أخطاء في التسمية
+designer_col = 'Led ID' if 'Led ID' in df_cont.columns else ('ID_Lead' if 'ID_Lead' in df_cont.columns else None)
+
+if designer_col and not df_cont.empty:
+    # حساب متوسط نسبة الإنجاز لكل مصمم تعليمي
+    df_designer_prog = df_cont.groupby(designer_col)['Progress_Num'].mean().reset_index()
+    df_designer_prog['Progress (%)'] = df_designer_prog['Progress_Num'] * 100
+    
+    # توليد أعمدة بعدد المصممين الموجودين تلقائياً لضمان التوزيع المتساوي
+    num_designers = len(df_designer_prog)
+    if num_designers > 0:
+        designer_cols = st.columns(num_designers)
+        
+        for idx, row in df_designer_prog.iterrows():
+            designer_name = row[designer_col]
+            progress_val = row['Progress (%)']
+            
+            with designer_cols[idx]:
+                # تصميم الكارت بنفس التنسيق العام والهوية البصرية للوحة التحكم
+                designer_card_html = f"""
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-top: 5px solid #0d86c8; text-align: center; margin-bottom: 15px;">
+                    <span style="font-size: 15px; font-weight: 600; color: #4b5563; display: block; margin-bottom: 8px;">{designer_name}</span>
+                    <span style="font-size: 28px; font-weight: bold; color: #0d86c8;">{progress_val:.1f}%</span>
+                </div>
+                """
+                st.markdown(designer_card_html, unsafe_allow_html=True)
+else:
+    st.info("No designer data available to display progress columns.")
 
 # --- 8. الجداول والرسومات ---
 col_a, col_b = st.columns(2)
