@@ -231,16 +231,23 @@ for col, unit_val, label, d_str, d_dt in zip([c1, c2], [active_unit, next_unit],
 st.markdown("---")
 st.subheader("📚 Overall Content Readiness per Course")
 
-# تجميع البيانات وحساب نسبة الإنجاز
+# 1. التحقق من حالة التأخير بناءً على تواريخ تسليم المهام واليوم الحالي (today)
+df_cont['Planned_End_dt'] = pd.to_datetime(df_cont['Planned_End']).dt.date
+df_cont['Is_Delayed'] = (df_cont['Progress_Num'] < 1) & (df_cont['Planned_End_dt'] < today)
+
+# استخراج أسماء المساقات التي تحتوي على أي مهمة متأخرة عن وقتها
+delayed_courses = df_cont[df_cont['Is_Delayed']]['Course Name'].unique()
+
+# 2. تجميع البيانات وحساب متوسط نسبة الإنجاز العامة لكل مساق
 df_overall_course = df_cont.groupby('Course Name')['Progress_Num'].mean().reset_index()
 
 if not df_overall_course.empty:
-    # تجهيز الأعمدة لتطابق التنسيق المعتمد
+    # تجهيز الأعمدة لتطابق التنسيق العام (المكتمل والمتبقي)
     df_overall_course.rename(columns={'Progress_Num': 'Completed (%)'}, inplace=True)
     df_overall_course['Completed (%)'] = df_overall_course['Completed (%)'] * 100
     df_overall_course['Remaining (%)'] = 100 - df_overall_course['Completed (%)']
     
-    # بناء الرسم البياني العمودي بنفس الألوان والأسلوب
+    # 3. بناء الرسم البياني العمودي المعتمد في الـ Dashboard
     fig_content = px.bar(
         df_overall_course, 
         x='Course Name', 
@@ -248,12 +255,21 @@ if not df_overall_course.empty:
         color_discrete_map={'Completed (%)': '#0d86c8', 'Remaining (%)': '#e6e9ef'}
     )
     
-    # توحيد هوامش ومحاور الرسم البياني مع باقي رسومات الـ Dashboard
+    # 4. تطبيق شرط تلوين العامود باللون الأحمر إذا كان المساق متأخراً
+    colors_completed = [
+        '#d32f2f' if row['Course Name'] in delayed_courses else '#0d86c8'
+        for _, row in df_overall_course.iterrows()
+    ]
+    
+    # تحديث لون الجزء الخاص بنسبة الإنجاز (Trace 0) ديناميكياً
+    fig_content.data[0].marker.color = colors_completed
+    
+    # 5. ضبط محاور وهوامش الرسم البياني ليتطابق مع باقي رسومات لوحة التحكم
     fig_content.update_yaxes(range=[0, 100])
     fig_content.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title=None)
     
-    # استخدام key فريد لتجنب تضارب العناصر (DuplicateElementId)
-    st.plotly_chart(fig_content, use_container_width=True, key="overall_content_chart_unique")
+    # عرض الرسم البياني بمعرّف فريد لمنع تضارب العناصر
+    st.plotly_chart(fig_content, use_container_width=True, key="overall_content_chart_with_red_alert")
 else:
     st.info("No content data available to display the chart.")
 # --- 10. Footer ---
