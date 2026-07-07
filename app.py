@@ -142,7 +142,7 @@ with header_col1:
     logo_path = os.path.join(CURRENT_DIR, "1.png")
     if os.path.exists(logo_path): st.image(logo_path, width=500)
 with header_col2:
-    st.markdown("<h1 style='margin-top: 6rem; margin-bottom: -10px; padding-top: 0rem; color: #706f6f;'>Online Gate project Dashboard- p </h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin-top: 6rem; margin-bottom: -10px; padding-top: 0rem; color: #706f6f;'>Online Gate project Dashboard- Phase II </h1>", unsafe_allow_html=True)
 st.markdown("<hr style='margin-top: -90px; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 # --- 7. قسم الـ Metrics ---
