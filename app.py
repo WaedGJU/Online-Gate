@@ -190,6 +190,55 @@ if active_unit != "None" and not course_active_prog.empty:
     st.plotly_chart(fig_active, use_container_width=True)
 
 st.markdown("---")
+# --- 8.7. Overall Content Readiness per Course ---
+st.markdown("---")
+st.subheader("📚 Overall Content Readiness per Course")
+
+# 1. حساب نسبة إنجاز المحتوى لكل مساق
+course_content_prog = df_cont.groupby('Course Name')['Progress_Num'].mean() * 100
+
+# 2. تجهيز جدول البيانات للعرض
+content_status_df = pd.DataFrame({
+    'Course Name': course_content_prog.index,
+    'Content Readiness (%)': course_content_prog.values
+})
+
+# دالة لتحديد حالة جاهزية المحتوى (مبسطة)
+def get_content_status(prog):
+    if prog == 100: 
+        return 'Completed'
+    elif prog < 70 and days_to_project_end < 30: 
+        return 'At Risk'
+    else: 
+        return 'In Progress'
+
+content_status_df['Status'] = content_status_df['Content Readiness (%)'].apply(get_content_status)
+
+# 3. تقسيم العرض إلى عمودين (جدول ورسم بياني)
+col_c1, col_c2 = st.columns(2)
+
+with col_c1:
+    # عرض الجدول مع تلوين الحالة وتنسيق النسبة المئوية (بدون تحويلها لنص للحفاظ على قدرة الترتيب)
+    st.dataframe(
+        content_status_df.style.format({'Content Readiness (%)': '{:.2f}%'}).map(highlight_status, subset=['Status']),
+        use_container_width=True, 
+        hide_index=True
+    )
+
+with col_c2:
+    # 4. تجهيز بيانات الرسم البياني
+    content_chart_df = pd.DataFrame({
+        'Course Name': course_content_prog.index,
+        'Completed (%)': course_content_prog.values
+    })
+    content_chart_df['Remaining (%)'] = 100 - content_chart_df['Completed (%)']
+    
+    # بناء الرسم البياني (Bar Chart)
+    fig_content = px.bar(content_chart_df, x='Course Name', y=['Completed (%)', 'Remaining (%)'],
+                         color_discrete_map={'Completed (%)': '#0d86c8', 'Remaining (%)': '#e6e9ef'})
+    fig_content.update_yaxes(range=[0, 100])
+    fig_content.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title=None)
+    st.plotly_chart(fig_content, use_container_width=True)
 
 # --- 9. Content Readiness (Instructor's Responsibility) ---
 st.subheader("📄 Content Readiness (Instructor's Responsibility)")
