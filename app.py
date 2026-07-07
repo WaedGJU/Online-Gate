@@ -35,10 +35,10 @@ st.markdown("""
 
 # 2. تحديد المسار والروابط
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-URL_ACT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1795333917&single=true&output=csv"
-URL_CONT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1631998533&single=true&output=csv"
-URL_INFO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1338069770&single=true&output=csv"
-URL_DEAD = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfCEeyp9UcdqFNm4_LO3Otz9B4SS2UJvcDDXnAc3bxYsqrLD_GeoT4ZsKkjM3iPkrhFfC8BbTYIqhm/pub?gid=1791071784&single=true&output=csv"
+URL_ACT = "https://docs.google.com/spreadsheets/d/1mlT8L2S-gZSDWBsaxoIzDTNWwekukbzqzpl7zN3kdrI/edit?gid=1795333917#gid=1795333917&fvid=1498985585"
+URL_CONT = "https://docs.google.com/spreadsheets/d/1mlT8L2S-gZSDWBsaxoIzDTNWwekukbzqzpl7zN3kdrI/edit?gid=1631998533#gid=1631998533&fvid=1923142422"
+URL_INFO = "https://docs.google.com/spreadsheets/d/1mlT8L2S-gZSDWBsaxoIzDTNWwekukbzqzpl7zN3kdrI/edit?gid=1975934081#gid=1975934081"
+URL_DEAD = "https://docs.google.com/spreadsheets/d/1mlT8L2S-gZSDWBsaxoIzDTNWwekukbzqzpl7zN3kdrI/edit?gid=1791071784#gid=1791071784"
 
 # 3. دالة تحميل البيانات
 @st.cache_data(ttl=30)
