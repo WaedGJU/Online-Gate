@@ -71,45 +71,44 @@ import os
 import plotly.express as px
 
 # ==========================================
-# --- 2.5. Global Filters (فلاتر لوحة التحكم) ---
+# ==========================================
+# --- 2.5. Sidebar Filters (فلاتر القائمة الجانبية) ---
 # ==========================================
 
-# إنشاء صف يحتوي على عمودين للفلاتر بتنسيق نظيف ومتناسق
-col_filter1, col_filter2 = st.columns(2)
+# إضافة عنوان وخط فاصل في القائمة الجانبية (يسار الشاشة)
+st.sidebar.markdown("Dashboard Filters")
+st.sidebar.markdown("---")
 
-with col_filter1:
-    # 1. فلتر الفصول الدراسية (Term / Semester)
-    # نتحقق من اسم العمود المستخدم في ملفاتك (غالباً Term أو Semester)
-    sem_col = 'Term' if 'Term' in df_cont.columns else ('Semester' if 'Semester' in df_cont.columns else None)
-    
-    if sem_col:
-        semester_options = ["All / الكل"] + list(df_cont[sem_col].dropna().unique())
-        selected_semester = st.selectbox("📅 Filter by Semester (تصفية حسب الفصل الدراسي):", semester_options)
-    else:
-        selected_semester = "All / الكل"
+# 1. فلتر الفصول الدراسية (Semester) باستخدام أزرار (Radio)
+sem_col = 'Semester' if 'Semester' in df_cont.columns else ('Term' if 'Term' in df_cont.columns else None)
 
-with col_filter2:
-    # 2. فلتر المصممين التعليميين (Instructional Designers)
-    # نتحقق من اسم العمود المستخدم في ملفاتك (غالباً Led ID أو Instructor)
-    designer_col = 'Led ID' if 'Led ID' in df_cont.columns else ('Instructional Designer' if 'Instructional Designer' in df_cont.columns else None)
-    
-    if designer_col:
-        designer_options = ["All"] + list(df_cont[designer_col].dropna().unique())
-        selected_designer = st.selectbox(" Filter by Instructional Designer ):", designer_options)
-    else:
-        selected_designer = "All"
+if sem_col:
+    semester_options = ["All"] + list(df_cont[sem_col].dropna().unique())
+    selected_semester = st.sidebar.radio("📅 Semester", semester_options)
+else:
+    selected_semester = "All"
 
-# --- تطبيق الفلاتر ديناميكياً على البيانات الأساسية قبل العرض ---
+st.sidebar.markdown("---")
+
+# 2. فلتر المصممين التعليميين (Instructional Designer) باستخدام أزرار (Radio)
+designer_col = 'Instructional Designer' if 'Instructional Designer' in df_cont.columns else ('Led ID' if 'Led ID' in df_cont.columns else None)
+
+if designer_col:
+    designer_options = ["All / الكل"] + list(df_cont[designer_col].dropna().unique())
+    selected_designer = st.sidebar.radio("🎨 Instructional Designer", designer_options)
+else:
+    selected_designer = "All"
+
+# --- تطبيق الفلاتر ديناميكياً على البيانات (df_cont و df_act) ---
 if selected_semester != "All" and sem_col:
     df_cont = df_cont[df_cont[sem_col] == selected_semester]
-    if 'df_act' in locals() or 'df_act' in globals():
-        df_act = df_act[df_act[sem_col] == selected_semester]
+    df_act = df_act[df_act[sem_col] == selected_semester]
 
 if selected_designer != "All" and designer_col:
     df_cont = df_cont[df_cont[designer_col] == selected_designer]
-    if 'df_act' in locals() or 'df_act' in globals():
-        df_act = df_act[df_act[designer_col] == selected_designer]
+    df_act = df_act[df_act[designer_col] == selected_designer]
 
+# ==========================================
 # ------------------------------------------
 # 4. المعالجة الزمنية
 today = pd.to_datetime('today').normalize()
@@ -202,8 +201,8 @@ m5.metric("📅 Project Deadline", "25/12/2026", f"{days_to_project_end} Days Le
 st.markdown("---")
 
 # --- القسم الجديد: أعمدة إنجاز المصممين التعليميين ---
-st.markdown("---")
-st.subheader("🎨 Instructional Designers Progress (إنجاز المصممين التعليميين)")
+
+st.subheader("Instructional Designers Progress")
 
 # تحديد العمود الخاص بالمصممين لضمان عدم حدوث أخطاء في التسمية
 designer_col = 'Led ID' if 'Led ID' in df_cont.columns else ('ID_Lead' if 'ID_Lead' in df_cont.columns else None)
