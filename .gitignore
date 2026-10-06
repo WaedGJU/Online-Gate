@@ -1,0 +1,9 @@
+# Local secrets (passwords, Google Sheets links) - never commit
+.streamlit/secrets.toml
+
+# Local Claude Code settings
+.claude/
+
+# Python
+__pycache__/
+*.pyc
