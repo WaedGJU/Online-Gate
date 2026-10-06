@@ -30,6 +30,10 @@ st.markdown("""
     <style>
            [data-testid="stImage"] { margin-top: -60px; }
            .block-container { padding-top: 4rem; }
+           /* منع قص أرقام المؤشرات في الشاشات الضيقة */
+           [data-testid="stMetricValue"] { font-size: 1.8rem; }
+           [data-testid="stMetricValue"] p,
+           [data-testid="stMetricLabel"] p { white-space: normal; overflow: visible; text-overflow: clip; word-break: normal; overflow-wrap: normal; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -66,11 +70,6 @@ try:
 except Exception:
     st.error("يرجى التأكد من روابط Google Sheets وصلاحيات المشاركة.")
     st.stop()
-
-import streamlit as st
-import pandas as pd
-import os
-import plotly.express as px
 
 
 # ==========================================
@@ -109,15 +108,28 @@ if selected_semester != "All" and sem_col:
     df_cont = df_cont[df_cont['Course Name'].isin(courses_in_semester)]
     df_act = df_act[df_act['Course Name'].isin(courses_in_semester)]
 
-# Apply Designer Filter
+# Apply Designer Filter (each table is filtered only if it has the designer column)
 if selected_designer != "All" and designer_col:
-    df_cont = df_cont[df_cont[designer_col] == selected_designer]
-    df_act = df_act[df_act[designer_col] == selected_designer]
+    if designer_col in df_cont.columns:
+        df_cont = df_cont[df_cont[designer_col] == selected_designer]
+    if designer_col in df_act.columns:
+        df_act = df_act[df_act[designer_col] == selected_designer]
+
+st.sidebar.markdown("---")
+
+# 3. Course Filter (options follow the semester and designer filters above)
+course_options = ["All"] + sorted(df_act['Course Name'].dropna().unique())
+selected_course = st.sidebar.selectbox("📘 Course:", course_options)
+
+if selected_course != "All":
+    df_act = df_act[df_act['Course Name'] == selected_course]
+    df_cont = df_cont[df_cont['Course Name'] == selected_course]
 
 # ==========================================
 # ------------------------------------------
 # 4. المعالجة الزمنية
 today = pd.to_datetime('today').normalize()
+# تاريخ نهاية المشروع - يُعدَّل هنا فقط
 project_deadline = pd.to_datetime('2026-12-25')
 days_to_project_end = (project_deadline - today).days
 
@@ -173,7 +185,7 @@ def get_course_status(course_name, overall_prog):
     if course_name in delayed_course_list: 
         return 'Delayed'
     
-    # القاعدة 3: At Risk (أقل من 70% وباقي أقل من شهر على نهاية المشروع 20/06)
+    # القاعدة 3: At Risk (أقل من 70% وباقي أقل من شهر على نهاية المشروع project_deadline)
     if overall_prog < 70 and days_to_project_end < 30:
         return 'At Risk'
         
@@ -188,21 +200,67 @@ course_status_df = pd.DataFrame({
 })
 
 # --- 6. واجهة الهيدر ---
-header_col1, header_col2 = st.columns([1, 4])
+header_col1, header_col2 = st.columns([1, 4], vertical_alignment="center")
 with header_col1:
     logo_path = os.path.join(CURRENT_DIR, "1.png")
     if os.path.exists(logo_path): st.image(logo_path, width=500)
 with header_col2:
-    st.markdown("<h1 style='margin-top: 6rem; margin-bottom: -10px; padding-top: 0rem; color: #706f6f;'>Online Gate project Dashboard- Phase II </h1>", unsafe_allow_html=True)
-st.markdown("<hr style='margin-top: -90px; margin-bottom: 15px;'>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin: 0; padding: 0; color: #706f6f;'>Online Gate project Dashboard- Phase II </h1>", unsafe_allow_html=True)
+st.markdown("<hr style='margin-top: 0; margin-bottom: 15px;'>", unsafe_allow_html=True)
 
 # --- 7. قسم الـ Metrics ---
 m1, m2, m3, m4, m5 = st.columns(5)
-m1.metric("🎯 Total Progress", f"{overall_progress:.2f}%")
+m1.metric("🎯 Total Progress", f"{overall_progress:.1f}%")
 m2.metric("📍 Active Unit", f"Unit {active_unit}", f"{days_remaining} Days Left", delta_color="off")
-m3.metric("🚀 Unit Progress", f"{active_unit_progress:.2f}%")
+m3.metric("🚀 Unit Progress", f"{active_unit_progress:.1f}%")
 m4.metric("⏭️ Next Unit", f"Unit {next_unit}")
-m5.metric("📅 Project Deadline", "25/12/2026", f"{days_to_project_end} Days Left")
+m5.metric("📅 Project Deadline", project_deadline.strftime('%d %b %Y'), f"{days_to_project_end} Days Left")
+
+# --- 7.5. ملخص المساق المختار (يظهر فقط عند اختيار مساق من الفلتر) ---
+if selected_course != "All":
+    st.markdown("---")
+    st.subheader(f"📘 Course Snapshot: {selected_course}")
+
+    course_info = df_info[df_info['Course_Name'] == selected_course]
+    instructor = course_info['Instructor'].iloc[0] if not course_info.empty else "—"
+    lead = course_info['ID_Lead'].iloc[0] if not course_info.empty else "—"
+    instructor = str(instructor).replace("\n", " ") if pd.notna(instructor) else "—"
+    lead = str(lead) if pd.notna(lead) else "—"
+
+    course_overall = course_progress.get(selected_course, 0)
+    course_status = get_course_status(selected_course, course_overall)
+    content_readiness = df_cont['Progress_Num'].mean() * 100 if not df_cont.empty else 0
+    remaining_activities = int((df_act['Progress_Num'] == 0).sum())
+
+    s1, s2, s3, s4 = st.columns(4)
+    s1.metric("📈 Course Progress", f"{course_overall:.1f}%")
+    s2.metric("📄 Content Readiness", f"{content_readiness:.1f}%")
+    s3.metric("📝 Remaining Activities", remaining_activities)
+    with s4:
+        st.markdown(f"""<div style="padding-top: 6px;">
+            <span style="font-size: 14px; color: #4b5563;">🚦 Status</span><br>
+            <span style="font-size: 26px; {highlight_status(course_status)}">{course_status}</span>
+        </div>""", unsafe_allow_html=True)
+    st.caption(f"👩‍🏫 Instructor: {instructor} | 🎨 Instructional Designer: {lead}")
+
+    # تفاصيل الإنجاز لكل وحدة في هذا المساق
+    unit_detail = df_act.groupby('Unit').agg(
+        Activities=('Progress_Num', 'size'),
+        Done=('Progress_Num', 'sum'),
+    ).reset_index()
+    unit_detail['Progress (%)'] = unit_detail['Done'] / unit_detail['Activities'] * 100
+    unit_detail = unit_detail.merge(df_dead[['unit', 'End']], left_on='Unit', right_on='unit', how='left')
+    unit_detail['Status'] = unit_detail.apply(
+        lambda r: 'Completed' if r['Progress (%)'] == 100
+        else ('Delayed' if pd.notna(r['End']) and r['End'] < today else 'In Progress'), axis=1)
+    unit_detail['Deadline'] = unit_detail['End'].dt.strftime('%d/%m/%Y').fillna('—')
+    unit_order = {u: i for i, u in enumerate(df_dead['unit'])}
+    unit_detail = unit_detail.sort_values('Unit', key=lambda s: s.map(unit_order))
+    unit_detail['Progress (%)'] = unit_detail['Progress (%)'].map(lambda x: f"{x:.1f}%")
+    st.dataframe(
+        unit_detail[['Unit', 'Deadline', 'Activities', 'Done', 'Progress (%)', 'Status']]
+            .style.map(highlight_status, subset=['Status']),
+        use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
